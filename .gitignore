@@ -1,0 +1,9 @@
+node_modules/
+.env
+tareas.json
+suscripciones.json
+notificationService copy.js
+notificationService.js
+server copy.js
+service-worker.js
+npm
