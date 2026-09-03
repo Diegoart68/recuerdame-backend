@@ -38,17 +38,13 @@ if (
     !VAPID_PUBLIC_KEY ||
     !VAPID_PRIVATE_KEY
 ) {
-
     console.error(
         "❌ No se encontraron las claves VAPID en las variables de entorno."
     );
-
 } else {
-
     console.log(
         "🔐 Claves VAPID cargadas correctamente."
     );
-
 }
 
 // ==================================================
@@ -59,17 +55,11 @@ if (
     VAPID_PUBLIC_KEY &&
     VAPID_PRIVATE_KEY
 ) {
-
     webpush.setVapidDetails(
-
         "mailto:recuérdame@example.com",
-
         VAPID_PUBLIC_KEY,
-
         VAPID_PRIVATE_KEY
-
     );
-
 }
 
 // ==================================================
@@ -117,19 +107,14 @@ if (
         archivoTareas
     )
 ) {
-
     fs.writeFileSync(
-
         archivoTareas,
-
         JSON.stringify(
             [],
             null,
             2
         )
-
     );
-
 }
 
 // ==================================================
@@ -137,9 +122,7 @@ if (
 // ==================================================
 
 function obtenerTareas() {
-
     try {
-
         const contenido =
             fs.readFileSync(
                 archivoTareas,
@@ -154,26 +137,19 @@ function obtenerTareas() {
         if (
             !Array.isArray(tareas)
         ) {
-
             return [];
-
         }
 
         return tareas;
-
     }
-
     catch (error) {
-
         console.error(
             "❌ Error leyendo tareas:",
             error
         );
 
         return [];
-
     }
-
 }
 
 // ==================================================
@@ -183,32 +159,22 @@ function obtenerTareas() {
 function guardarTareas(
     tareas
 ) {
-
     try {
-
         fs.writeFileSync(
-
             archivoTareas,
-
             JSON.stringify(
                 tareas,
                 null,
                 2
             )
-
         );
-
     }
-
     catch (error) {
-
         console.error(
             "❌ Error guardando tareas:",
             error
         );
-
     }
-
 }
 
 // ==================================================
@@ -218,16 +184,11 @@ function guardarTareas(
 app.get(
     "/",
     (req, res) => {
-
         res.json({
-
             ok: true,
-
             mensaje:
                 "🚀 Servidor de Recuérdame funcionando correctamente."
-
         });
-
     }
 );
 
@@ -242,29 +203,20 @@ app.get(
         if (
             !VAPID_PUBLIC_KEY
         ) {
-
             return res
                 .status(500)
                 .json({
-
                     ok: false,
-
                     mensaje:
                         "No existe la clave pública VAPID."
-
                 });
-
         }
 
         res.json({
-
             ok: true,
-
             clavePublica:
                 VAPID_PUBLIC_KEY
-
         });
-
     }
 );
 
@@ -333,10 +285,8 @@ app.get(
                     "👥 Navegadores conectados:",
                     clientesConectados.length
                 );
-
             }
         );
-
     }
 );
 
@@ -352,14 +302,10 @@ app.get(
             obtenerTareas();
 
         res.json({
-
             ok: true,
-
             tareas:
                 tareas
-
         });
-
     }
 );
 
@@ -372,9 +318,11 @@ app.post(
     (req, res) => {
 
         const {
+            id,
             texto,
             fecha,
             hora,
+            fechaHora,
             canal
         } = req.body;
 
@@ -386,18 +334,13 @@ app.post(
             !texto ||
             !String(texto).trim()
         ) {
-
             return res
                 .status(400)
                 .json({
-
                     ok: false,
-
                     mensaje:
                         "El texto de la tarea es obligatorio."
-
                 });
-
         }
 
         // ------------------------------------------
@@ -408,19 +351,46 @@ app.post(
             !fecha ||
             !hora
         ) {
-
             return res.json({
-
                 ok: true,
-
                 sincronizado:
                     false,
-
                 mensaje:
                     "La tarea fue recibida, pero no tiene fecha u hora."
-
             });
+        }
 
+        // ------------------------------------------
+        // CREAR / VALIDAR FECHAHORA
+        // ------------------------------------------
+
+        let fechaHoraFinal =
+            fechaHora;
+
+        if (
+            !fechaHoraFinal
+        ) {
+            fechaHoraFinal =
+                `${fecha}T${hora}:00`;
+        }
+
+        const fechaHoraObjeto =
+            new Date(
+                fechaHoraFinal
+            );
+
+        if (
+            Number.isNaN(
+                fechaHoraObjeto.getTime()
+            )
+        ) {
+            return res
+                .status(400)
+                .json({
+                    ok: false,
+                    mensaje:
+                        "La fecha y hora del recordatorio no son válidas."
+                });
         }
 
         // ------------------------------------------
@@ -436,20 +406,31 @@ app.post(
 
         const existe =
             tareas.some(
-                tarea =>
+                tarea => {
 
-                    tarea.texto ===
-                    texto &&
+                    if (
+                        id &&
+                        tarea.id &&
+                        String(tarea.id) ===
+                        String(id)
+                    ) {
+                        return true;
+                    }
 
-                    tarea.fecha ===
-                    fecha &&
+                    return (
+                        tarea.texto ===
+                        String(texto).trim() &&
 
-                    tarea.hora ===
-                    hora &&
+                        tarea.fecha ===
+                        fecha &&
 
-                    tarea.recordada ===
-                    false
+                        tarea.hora ===
+                        hora &&
 
+                        tarea.recordada ===
+                        false
+                    );
+                }
             );
 
         if (
@@ -463,37 +444,42 @@ app.post(
 
             const tareaExistente =
                 tareas.find(
-                    tarea =>
+                    tarea => {
 
-                        tarea.texto ===
-                        texto &&
+                        if (
+                            id &&
+                            tarea.id &&
+                            String(tarea.id) ===
+                            String(id)
+                        ) {
+                            return true;
+                        }
 
-                        tarea.fecha ===
-                        fecha &&
+                        return (
+                            tarea.texto ===
+                            String(texto).trim() &&
 
-                        tarea.hora ===
-                        hora &&
+                            tarea.fecha ===
+                            fecha &&
 
-                        tarea.recordada ===
-                        false
+                            tarea.hora ===
+                            hora &&
 
+                            tarea.recordada ===
+                            false
+                        );
+                    }
                 );
 
             return res.json({
-
                 ok: true,
-
                 duplicado:
                     true,
-
                 mensaje:
                     "El recordatorio ya estaba sincronizado.",
-
                 tarea:
                     tareaExistente
-
             });
-
         }
 
         // ------------------------------------------
@@ -503,6 +489,7 @@ app.post(
         const nuevaTarea = {
 
             id:
+                id ||
                 Date.now(),
 
             texto:
@@ -513,6 +500,9 @@ app.post(
 
             hora:
                 hora,
+
+            fechaHora:
+                fechaHoraObjeto.toISOString(),
 
             canal:
                 canal || "app",
@@ -525,7 +515,6 @@ app.post(
 
             creada:
                 new Date().toISOString()
-
         };
 
         // ------------------------------------------
@@ -571,6 +560,11 @@ app.post(
         );
 
         console.log(
+            "🌎 FechaHora ISO:",
+            nuevaTarea.fechaHora
+        );
+
+        console.log(
             "📡 Canal:",
             nuevaTarea.canal
         );
@@ -582,20 +576,14 @@ app.post(
         // ------------------------------------------
 
         res.json({
-
             ok: true,
-
             duplicado:
                 false,
-
             mensaje:
                 "Recordatorio guardado correctamente.",
-
             tarea:
                 nuevaTarea
-
         });
-
     }
 );
 
@@ -618,18 +606,13 @@ app.post(
             !suscripcion ||
             !suscripcion.endpoint
         ) {
-
             return res
                 .status(400)
                 .json({
-
                     ok: false,
-
                     mensaje:
                         "Suscripción Push inválida."
-
                 });
-
         }
 
         // ------------------------------------------
@@ -663,26 +646,19 @@ app.post(
             );
 
             console.log("");
-
         }
-
         else {
 
             console.log(
                 "ℹ️ La suscripción Push ya estaba registrada."
             );
-
         }
 
         res.json({
-
             ok: true,
-
             mensaje:
                 "Suscripción Push guardada correctamente."
-
         });
-
     }
 );
 
@@ -695,17 +671,12 @@ app.get(
     (req, res) => {
 
         res.json({
-
             ok: true,
-
             cantidad:
                 suscripcionesPush.length,
-
             suscripciones:
                 suscripcionesPush
-
         });
-
     }
 );
 
@@ -733,7 +704,6 @@ function enviarRecordatorioATodos(
                     return true;
 
                 }
-
                 catch (error) {
 
                     console.error(
@@ -742,12 +712,9 @@ function enviarRecordatorioATodos(
                     );
 
                     return false;
-
                 }
-
             }
         );
-
 }
 
 // ==================================================
@@ -772,7 +739,6 @@ async function enviarPush(
         );
 
         return;
-
     }
 
     // ------------------------------------------
@@ -788,7 +754,6 @@ async function enviarPush(
         );
 
         return;
-
     }
 
     // ------------------------------------------
@@ -807,7 +772,6 @@ async function enviarPush(
 
             tarea:
                 tarea
-
         });
 
     // ------------------------------------------
@@ -831,17 +795,13 @@ async function enviarPush(
         try {
 
             await webpush.sendNotification(
-
                 suscripcion,
-
                 payload
-
             );
 
             console.log(
                 "📲 Push enviado correctamente."
             );
-
         }
 
         catch (error) {
@@ -872,13 +832,9 @@ async function enviarPush(
                 console.log(
                     "🗑️ Suscripción Push eliminada."
                 );
-
             }
-
         }
-
     }
-
 }
 
 // ==================================================
@@ -897,9 +853,7 @@ async function revisarRecordatoriosServidor() {
     if (
         revisandoRecordatorios
     ) {
-
         return;
-
     }
 
     revisandoRecordatorios =
@@ -929,9 +883,7 @@ async function revisarRecordatoriosServidor() {
                 !tarea.fecha ||
                 !tarea.hora
             ) {
-
                 continue;
-
             }
 
             // --------------------------------------
@@ -941,9 +893,7 @@ async function revisarRecordatoriosServidor() {
             if (
                 tarea.completada
             ) {
-
                 continue;
-
             }
 
             // --------------------------------------
@@ -953,19 +903,41 @@ async function revisarRecordatoriosServidor() {
             if (
                 tarea.recordada
             ) {
-
                 continue;
+            }
+
+            // --------------------------------------
+            // OBTENER FECHAHORA
+            // --------------------------------------
+
+            let fechaHoraTarea;
+
+            if (
+                tarea.fechaHora
+            ) {
+
+                fechaHoraTarea =
+                    new Date(
+                        tarea.fechaHora
+                    );
+
+            }
+            else {
+
+                // Compatibilidad con tareas antiguas.
+                // Se interpreta fecha/hora como hora local
+                // del servidor solo si no existe fechaHora.
+
+                fechaHoraTarea =
+                    new Date(
+                        `${tarea.fecha}T${tarea.hora}:00`
+                    );
 
             }
 
             // --------------------------------------
-            // FECHA Y HORA
+            // VALIDAR FECHA
             // --------------------------------------
-
-            const fechaHoraTarea =
-                new Date(
-                    `${tarea.fecha}T${tarea.hora}:00`
-                );
 
             if (
                 Number.isNaN(
@@ -979,8 +951,20 @@ async function revisarRecordatoriosServidor() {
                 );
 
                 continue;
-
             }
+
+            // --------------------------------------
+            // MOSTRAR DATOS PARA DEPURACIÓN
+            // --------------------------------------
+
+            console.log(
+                "⏱️ Comprobando:",
+                tarea.texto,
+                "| Programado:",
+                fechaHoraTarea.toISOString(),
+                "| Ahora:",
+                ahora.toISOString()
+            );
 
             // --------------------------------------
             // TODAVÍA NO LLEGA
@@ -990,9 +974,7 @@ async function revisarRecordatoriosServidor() {
                 fechaHoraTarea >
                 ahora
             ) {
-
                 continue;
-
             }
 
             // --------------------------------------
@@ -1026,6 +1008,11 @@ async function revisarRecordatoriosServidor() {
             );
 
             console.log(
+                "🌎 FechaHora:",
+                tarea.fechaHora
+            );
+
+            console.log(
                 "📡 Canal:",
                 tarea.canal
             );
@@ -1035,8 +1022,6 @@ async function revisarRecordatoriosServidor() {
             // --------------------------------------
             // MARCAR INMEDIATAMENTE
             // --------------------------------------
-            // Esto evita que otra revisión vuelva
-            // a procesar la misma tarea.
 
             tarea.recordada =
                 true;
@@ -1059,7 +1044,6 @@ async function revisarRecordatoriosServidor() {
             await enviarPush(
                 tarea
             );
-
         }
 
         // ------------------------------------------
@@ -1069,13 +1053,10 @@ async function revisarRecordatoriosServidor() {
         if (
             huboCambios
         ) {
-
             guardarTareas(
                 tareas
             );
-
         }
-
     }
 
     catch (error) {
@@ -1084,16 +1065,13 @@ async function revisarRecordatoriosServidor() {
             "❌ Error revisando recordatorios:",
             error
         );
-
     }
 
     finally {
 
         revisandoRecordatorios =
             false;
-
     }
-
 }
 
 // ==================================================
@@ -1148,6 +1126,5 @@ app.listen(
         );
 
         console.log("");
-
     }
 );
