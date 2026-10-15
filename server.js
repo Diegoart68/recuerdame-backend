@@ -912,33 +912,43 @@ async function revisarRecordatoriosServidor() {
 
             let fechaHoraTarea;
 
-            if (
-                tarea.fechaHora
-            ) {
+            if (tarea.fechaHora) {
 
-                fechaHoraTarea =
-                    new Date(
-                        tarea.fechaHora
-                    );
+                fechaHoraTarea = new Date(
+                    tarea.fechaHora
+                );
+
+            } else {
+
+                // Las tareas antiguas usan la hora de Ecuador (UTC-5).
+                const [año, mes, dia] =
+                    tarea.fecha.split("-").map(Number);
+
+                const [horas, minutos] =
+                    tarea.hora.split(":").map(Number);
+
+                fechaHoraTarea = new Date(
+                    Date.UTC(
+                        año,
+                        mes - 1,
+                        dia,
+                        horas + 5,
+                        minutos
+                    )
+                );
 
             }
-            else {
 
-                // Compatibilidad con tareas antiguas.
-                // Se interpreta fecha/hora como hora local
-                // del servidor solo si no existe fechaHora.
 
-                fechaHoraTarea =
-                    new Date(
-                        `${tarea.fecha}T${tarea.hora}:00`
-                    );
-
-            }
-
-            // --------------------------------------
+                       // --------------------------------------
             // VALIDAR FECHA
             // --------------------------------------
 
+            if (
+                Number.isNaN(
+                    fechaHoraTarea.getTime()
+                )
+            ) {
             if (
                 Number.isNaN(
                     fechaHoraTarea.getTime()
