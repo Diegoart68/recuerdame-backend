@@ -850,77 +850,48 @@ async function revisarRecordatoriosServidor() {
     // EVITAR DOS REVISIONES AL MISMO TIEMPO
     // ------------------------------------------
 
-    if (
-        revisandoRecordatorios
-    ) {
+    if (revisandoRecordatorios) {
         return;
     }
 
-    revisandoRecordatorios =
-        true;
+    revisandoRecordatorios = true;
 
     try {
 
-        const tareas =
-            obtenerTareas();
+        const tareas = obtenerTareas();
+        const ahora = new Date();
+        let huboCambios = false;
 
-        const ahora =
-            new Date();
-
-        let huboCambios =
-            false;
-
-        for (
-            const tarea
-            of tareas
-        ) {
+        for (const tarea of tareas) {
 
             // --------------------------------------
             // SIN FECHA / HORA
             // --------------------------------------
 
-            if (
-                !tarea.fecha ||
-                !tarea.hora
-            ) {
+            if (!tarea.fecha || !tarea.hora) {
                 continue;
             }
 
             // --------------------------------------
-            // COMPLETADA
+            // COMPLETADA O YA RECORDADA
             // --------------------------------------
 
-            if (
-                tarea.completada
-            ) {
+            if (tarea.completada || tarea.recordada) {
                 continue;
             }
 
             // --------------------------------------
-            // YA RECORDADA
-            // --------------------------------------
-
-            if (
-                tarea.recordada
-            ) {
-                continue;
-            }
-
-            // --------------------------------------
-            // OBTENER FECHAHORA
+            // CONSTRUIR FECHA/HORA DE ECUADOR (UTC-5)
             // --------------------------------------
 
             let fechaHoraTarea;
 
             if (tarea.fechaHora) {
 
-                fechaHoraTarea = new Date(
-                    tarea.fechaHora
-                );
+                fechaHoraTarea = new Date(tarea.fechaHora);
 
             } else {
 
-                // Las tareas antiguas usan la hora de Ecuador (UTC-5).
                 const [año, mes, dia] =
                     tarea.fecha.split("-").map(Number);
 
@@ -933,27 +904,18 @@ async function revisarRecordatoriosServidor() {
                         mes - 1,
                         dia,
                         horas + 5,
-                        minutos
+                        minutos,
+                        0,
+                        0
                     )
                 );
-
             }
 
-
-                       // --------------------------------------
+            // --------------------------------------
             // VALIDAR FECHA
             // --------------------------------------
 
-            if (
-                Number.isNaN(
-                    fechaHoraTarea.getTime()
-                )
-            ) {
-            if (
-                Number.isNaN(
-                    fechaHoraTarea.getTime()
-                )
-            ) {
+            if (Number.isNaN(fechaHoraTarea.getTime())) {
 
                 console.log(
                     "⚠️ Fecha inválida:",
@@ -964,7 +926,7 @@ async function revisarRecordatoriosServidor() {
             }
 
             // --------------------------------------
-            // MOSTRAR DATOS PARA DEPURACIÓN
+            // DEPURACIÓN
             // --------------------------------------
 
             console.log(
@@ -980,10 +942,7 @@ async function revisarRecordatoriosServidor() {
             // TODAVÍA NO LLEGA
             // --------------------------------------
 
-            if (
-                fechaHoraTarea >
-                ahora
-            ) {
+            if (fechaHoraTarea.getTime() > ahora.getTime()) {
                 continue;
             }
 
@@ -992,95 +951,54 @@ async function revisarRecordatoriosServidor() {
             // --------------------------------------
 
             console.log("");
-
-            console.log(
-                "🚨 RECORDATORIO ACTIVADO"
-            );
-
-            console.log(
-                "🆔 ID:",
-                tarea.id
-            );
-
-            console.log(
-                "📝",
-                tarea.texto
-            );
-
-            console.log(
-                "📅",
-                tarea.fecha
-            );
-
-            console.log(
-                "🕐",
-                tarea.hora
-            );
-
-            console.log(
-                "🌎 FechaHora:",
-                tarea.fechaHora
-            );
-
-            console.log(
-                "📡 Canal:",
-                tarea.canal
-            );
-
+            console.log("🚨 RECORDATORIO ACTIVADO");
+            console.log("🆔 ID:", tarea.id);
+            console.log("📝", tarea.texto);
+            console.log("📅", tarea.fecha);
+            console.log("🕐", tarea.hora);
+            console.log("🌎 FechaHora:", tarea.fechaHora);
+            console.log("📡 Canal:", tarea.canal);
             console.log("");
 
             // --------------------------------------
-            // MARCAR INMEDIATAMENTE
+            // MARCAR ANTES DE ENVIAR
             // --------------------------------------
 
-            tarea.recordada =
-                true;
-
-            huboCambios =
-                true;
+            tarea.recordada = true;
+            huboCambios = true;
 
             // --------------------------------------
             // ENVIAR SSE
             // --------------------------------------
 
-            enviarRecordatorioATodos(
-                tarea
-            );
+            enviarRecordatorioATodos(tarea);
 
             // --------------------------------------
             // ENVIAR PUSH
             // --------------------------------------
 
-            await enviarPush(
-                tarea
-            );
+            await enviarPush(tarea);
         }
 
         // ------------------------------------------
-        // GUARDAR
+        // GUARDAR CAMBIOS
         // ------------------------------------------
 
-        if (
-            huboCambios
-        ) {
-            guardarTareas(
-                tareas
-            );
+        if (huboCambios) {
+            guardarTareas(tareas);
         }
-    }
 
-    catch (error) {
+    } catch (error) {
 
         console.error(
             "❌ Error revisando recordatorios:",
             error
         );
-    }
 
-    finally {
+    } finally {
 
-        revisandoRecordatorios =
-            false;
+        revisandoRecordatorios = false;
+
     }
 }
 
@@ -1127,7 +1045,7 @@ app.listen(
             "📡 Sistema SSE activado"
         );
 
-        console.log(
+        console.log(                                                                                                                                                                                                                                                                                                                                                                            
             "🔔 Sistema Push preparado"
         );
 
