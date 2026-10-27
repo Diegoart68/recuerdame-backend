@@ -361,38 +361,57 @@ app.post(
         }
 
         // ------------------------------------------
-        // CREAR / VALIDAR FECHAHORA
+        // CONSTRUIR FECHAHORA CON LA HORA DE ECUADOR
         // ------------------------------------------
 
-        let fechaHoraFinal =
-            fechaHora;
+        const partesFecha = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha);
+        const partesHora = /^(\d{2}):(\d{2})(?::(\d{2}))?$/.exec(hora);
 
-        if (
-            !fechaHoraFinal
-        ) {
-            fechaHoraFinal =
-                `${fecha}T${hora}:00`;
+        if (!partesFecha || !partesHora) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: "La fecha o la hora no tienen un formato válido."
+            });
         }
 
-        const fechaHoraObjeto =
-            new Date(
-                fechaHoraFinal
-            );
+        const año = Number(partesFecha[1]);
+        const mes = Number(partesFecha[2]);
+        const dia = Number(partesFecha[3]);
+        const horas = Number(partesHora[1]);
+        const minutos = Number(partesHora[2]);
+        const segundos = Number(partesHora[3] || 0);
+
+        const comprobacion = new Date(Date.UTC(año, mes - 1, dia));
 
         if (
-            Number.isNaN(
-                fechaHoraObjeto.getTime()
+            comprobacion.getUTCFullYear() !== año ||
+            comprobacion.getUTCMonth() !== mes - 1 ||
+            comprobacion.getUTCDate() !== dia ||
+            horas > 23 ||
+            minutos > 59 ||
+            segundos > 59
+        ) {
+            return res.status(400).json({
+                ok: false,
+                mensaje: "La fecha o la hora no son válidas."
+            });
+        }
+
+        // Ecuador continental utiliza UTC-5.
+        // Convertimos la hora local a una fecha UTC real.
+        const fechaHoraObjeto = new Date(
+            Date.UTC(
+                año,
+                mes - 1,
+                dia,
+                horas + 5,
+                minutos,
+                segundos,
+                0
             )
-        ) {
-            return res
-                .status(400)
-                .json({
-                    ok: false,
-                    mensaje:
-                        "La fecha y hora del recordatorio no son válidas."
-                });
-        }
+        );
 
+        const fechaHoraFinal = fechaHoraObjeto.toISOString();
         // ------------------------------------------
         // LEER TAREAS
         // ------------------------------------------
